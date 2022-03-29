@@ -3,6 +3,11 @@ import conn from "./connection/conn";
 import user from "./model/user";
 import router from "./routes/routes";
 
+const mosca = require("mosca");
+      const setting = {
+        port: 1883,
+      };
+
 const app = express();
 app.use(express.json());
 conn;

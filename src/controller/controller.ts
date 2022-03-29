@@ -3,6 +3,10 @@ import user from "../model/user";
 import jwt from "jsonwebtoken";
 import md5 from "md5";
 import bcrypt from "bcrypt";
+import mosca from "mosca";
+const setting = {
+  port: 1883,
+};
 
 const session = 3 * 24 * 60 * 60;
 const createToken = (id: object) => {
@@ -186,6 +190,27 @@ const reactive = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
+const mqserver = async (req: Request, res: Response) => {
+  const token = req.headers["authorization"];
+  jwt.verify(`${token}`, "secret", async (err: any, decodedToken: any) => {
+    if (err) {
+      res.json({ Message: "log in Again,Your Token Expired" });
+    } else {
+      var server = new mosca.Server(setting);
+
+      server.on("ready", function () {
+        console.log("ready");
+      });
+
+      server.on("clientConnected", function (client: any) {
+        console.log("New connection: ", client.id);
+      });
+    }
+  });
+
+  res.json({ Message: "Mqtt Server Connected" });
+};
+
 export default {
   signup,
   login,
@@ -195,4 +220,5 @@ export default {
   del,
   deactivate,
   reactive,
+  mqserver,
 };
