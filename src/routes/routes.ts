@@ -19,6 +19,4 @@ router.post("/deactive", controller.deactivate);
 
 router.post("/reactive", controller.reactive);
 
-router.post("/mqserver", controller.mqserver);
-
 export default router;

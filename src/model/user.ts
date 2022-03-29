@@ -1,19 +1,9 @@
 import mongoose from "mongoose";
-import bcrypt from "bcrypt";
 import md5 from "md5";
 const Model_Name = "user";
+import userInterface from "../interface/userInterface";
 
-interface user {
-  username: String;
-  password: string;
-  firstName: String;
-  lastName: String;
-  email: String;
-  phoneNumber: Number;
-  status: Number;
-}
-
-const userSchema = new mongoose.Schema<user>({
+const userSchema = new mongoose.Schema<userInterface>({
   username: {
     type: "String",
     required: true,
@@ -24,8 +14,8 @@ const userSchema = new mongoose.Schema<user>({
     type: String,
     required: true,
     unique: true,
-    // minLength: 4,
-    // maxLength: 10,
+    minLength: 4,
+    maxLength: 10,
   },
   firstName: {
     type: "String",
@@ -50,25 +40,14 @@ const userSchema = new mongoose.Schema<user>({
     default: 0,
   },
 });
-console.log(md5("Abhay"));
-
-//  moongoose hook post the Schema Saved
-// userSchema.post('save', function (doc, next) {
-//     console.log('new user was created & saved', doc);
-//     next();
-//   });
 
 //Hook pre the user schema
 userSchema.pre("save", async function (next) {
-  //const salt = await bcrypt.genSalt();
-  // const salt = 10;
-  // console.log(salt);
-  // this.password = await bcrypt.hash(this.password,salt)
   this.password = md5(this.password);
-  console.log(this.password);
+  //console.log(this.password);
   next();
 });
 
-const user = mongoose.model<user>(Model_Name, userSchema);
+const user = mongoose.model<userInterface>(Model_Name, userSchema);
 
 export default user;
