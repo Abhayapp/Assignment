@@ -2,10 +2,13 @@ import express from "express";
 import dbConnection from "./connection/dbConnection";
 import user from "./model/user";
 import router from "./routes/routes";
-import "dotenv/config";
 
-const port=8001;
-// console.log(process.env.PORT;);
+import dotenv from "dotenv";
+dotenv.config()
+
+const port = process.env.PORT;
+//console.log(port);
+
 const app = express();
 app.use(express.json());
 app.use(router);

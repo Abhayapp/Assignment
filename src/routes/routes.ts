@@ -3,20 +3,20 @@ import controller from "../controller/controller";
 const router = express.Router();
 const app = express();
 
-router.post("/signup", controller.signup);
+router.post("/signup", controller.signUp);
 
 router.post("/login", controller.login);
 
-router.get("/authuser", controller.authuser);
+router.get("/authuser", controller.authUser);
 
 router.post("/update", controller.update);
 
-router.post("/getprofile", controller.getprofile);
+router.post("/getprofile", controller.getProfile);
 
 router.delete("/delete", controller.del);
 
-router.post("/deactive", controller.deactivate);
+router.post("/deactive", controller.deActivate);
 
-router.post("/reactive", controller.reactive);
+router.post("/reactive", controller.reActivate);
 
 export default router;

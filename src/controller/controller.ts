@@ -3,12 +3,15 @@ import user from "../model/user";
 import jwt from "jsonwebtoken";
 import md5 from "md5";
 
+const secretKey = String(process.env.SECRET);
+
 const session = 3 * 24 * 60 * 60;
 const createToken = (id: object) => {
   return jwt.sign({ id }, "secret", { expiresIn: session });
 };
 
-const signup = async (req: Request, res: Response) => {
+
+const signUp = async (req: Request, res: Response) => {
   const {
     username,
     password,
@@ -19,7 +22,7 @@ const signup = async (req: Request, res: Response) => {
     status,
   } = req.body;
 
-  const check: any = await user.findOne({ username: username });
+  const check= await user.findOne({ username: username });
   if (check) {
     return res.json({ Message: "user Already Logged In!" });
   }
@@ -60,9 +63,9 @@ const login = async (req: Request, res: Response) => {
   }
 };
 
-const authuser = async (req: Request, res: Response) => {
+const authUser = async (req: Request, res: Response) => {
   const token = req.headers["authorization"];
-  jwt.verify(`${token}`, "secret", (err, decodedToken) => {
+  jwt.verify(`${token}`, secretKey, (err, decodedToken) => {
     if (err) {
       console.log(err.message);
       res.json({ Error: "error Occured" });
@@ -72,9 +75,9 @@ const authuser = async (req: Request, res: Response) => {
   });
 };
 
-const getprofile = async (req: Request, res: Response) => {
+const getProfile = async (req: Request, res: Response) => {
   const token = req.headers["authorization"];
-  jwt.verify(`${token}`, "secret", async (err, decodedToken: any) => {
+  jwt.verify(`${token}`, secretKey, async (err, decodedToken: any) => {
     if (err) {
       res.json({ Message: "log in Again" });
     } else {
@@ -87,7 +90,7 @@ const getprofile = async (req: Request, res: Response) => {
 
 const update = async (req: Request, res: Response) => {
   const token = req.headers["authorization"];
-  jwt.verify(`${token}`, "secret", async (err, decodedToken:any) => {
+  jwt.verify(`${token}`, secretKey, async (err, decodedToken:any) => {
     if (err) {
       res.json({ Message: "log in Again" });
     } else {
@@ -118,7 +121,7 @@ const update = async (req: Request, res: Response) => {
 
 const del = async (req: Request, res: Response) => {
   const token = req.headers["authorization"];
-  jwt.verify(`${token}`, "secret", async (err: any, decodedToken: any) => {
+  jwt.verify(`${token}`, secretKey, async (err, decodedToken:any) => {
     if (err) {
       res.json({ Message: "log in Again" });
     } else {
@@ -129,9 +132,9 @@ const del = async (req: Request, res: Response) => {
   });
 };
 
-const deactivate = async (req: Request, res: Response) => {
+const deActivate = async (req: Request, res: Response) => {
   const token = req.headers["authorization"];
-  jwt.verify(`${token}`, "secret", async (err, decodedToken: any) => {
+  jwt.verify(`${token}`, secretKey, async (err, decodedToken: any) => {
     if (err) {
       res.json({ Message: "log in Again" });
     } else {
@@ -145,7 +148,7 @@ const deactivate = async (req: Request, res: Response) => {
   });
 };
 
-const reactive = async (req: Request, res: Response) => {
+const reActivate = async (req: Request, res: Response) => {
   const { username, password } = req.body;
   const data = await user.findOne({ username: username, status: 0 });
   console.log(data);
@@ -173,12 +176,12 @@ const reactive = async (req: Request, res: Response) => {
 };
 
 export default {
-  signup,
+  signUp,
   login,
-  authuser,
+  authUser,
   update,
-  getprofile,
+  getProfile,
   del,
-  deactivate,
-  reactive,
+  deActivate,
+  reActivate,
 };
