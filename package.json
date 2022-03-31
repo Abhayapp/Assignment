@@ -3,9 +3,11 @@
     "dotenv": "^16.0.0",
     "jsonwebtoken": "^8.5.1",
     "md5": "^2.3.0",
-    "mongoose": "^6.2.7"
+    "mongoose": "^6.2.7",
+    "swagger-jsdoc": "^6.1.0",
+    "swagger-ui-express": "^4.3.0"
   },
-  "name": "node-project",
+  "name": "user-info",
   "version": "1.0.0",
   "description": "A Node Project with different APIs",
   "main": "app.ts",
