@@ -2,13 +2,13 @@ import express from "express";
 import dbConnection from "./connection/dbConnection";
 import userModel from "./model/user";
 import router from "./routes/userRoutes";
-const swaggerJSDoc = require("swagger-jsdoc");
-const swaggerUi = require("swagger-ui-express");
-
+import swaggerJSDoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
 import dotenv from "dotenv";
 dotenv.config();
 
 const port = process.env.PORT;
+const host = process.env.HOST;
 
 const app = express();
 app.use(express.json());
@@ -24,13 +24,29 @@ const options = {
     },
     servers: [
       {
-        url: "http://localhost:8000/",
+        url: `${host}${port}/`,
+      },
+    ],
+
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "apiKey",
+          name: "authorization",
+          scheme: "bearer",
+          in: "header",
+        },
+      },
+    },
+    security: [
+      {
+        bearerAuth: [],
       },
     ],
   },
   apis: ["./src/routes/userRoutes.ts"],
 };
-const swaggerSpec = swaggerJSDoc(options);
+const swaggerSpec: object = swaggerJSDoc(options);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.listen(port, () => {
