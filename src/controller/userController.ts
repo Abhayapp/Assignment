@@ -1,16 +1,53 @@
 import { Request, Response } from "express";
 import userModel from "../model/user";
-import jwt from "jsonwebtoken";
-import md5 from "md5";
+import { userData, decodedTokenInterface } from "../interface/userInterface";
+import createToken from "../middleware/jwtSign";
+import encryptPassword from "../middleware/encrypt";
 
-const jwtSecretKey = String(process.env.JWTSECRETKEY);
+// use of multer for image and file uploading
+import multer from "multer";
+import imageModel from "../model/imageModel";
+const storage = multer.diskStorage({
+  destination: "uploads",
+  filename: (req: Request, file: any, cb) => {
+    cb(null, file.originalname);
+    console.log(file.originalname);
+  },
+});
 
-const session = 3 * 24 * 60 * 60;
-const createToken = (id: object) => {
-  return jwt.sign({ id }, jwtSecretKey, { expiresIn: session });
+const upload = multer({
+  storage: storage,
+}).single("Image");
+
+const uploadImage = async (req: Request, res: Response) => {
+  upload(req, res, (err: any) => {
+    if (err) {
+      console.log(err);
+      res.json({ err: "error" });
+    } else {
+      const newImage = new imageModel({
+        name: req.body.name,
+        image: {
+          data: req.file?.filename,
+          contentType: "image/png/pdf/xls/jpg/otherfiles",
+        },
+      });
+      newImage
+        .save()
+        .then(() =>
+          res.json({
+            success: 1,
+            imageName: `${req.file?.filename}`,
+          })
+        )
+        .catch((err: any) => console.log(err));
+      console.log(newImage);
+    }
+  });
 };
+//==========================================//
 
-const signUp = async (req: Request, res: Response) => {
+const signUp = async (req: Request, res: Response): Promise<Response> => {
   const {
     username,
     password,
@@ -19,11 +56,11 @@ const signUp = async (req: Request, res: Response) => {
     email,
     phoneNumber,
     status,
-  } = req.body;
+  }: userData = req.body;
 
-  const check = await userModel.findOne({ username: username });
-  if (check) {
-    return res.json({ message: "user already logged in" });
+  const existUser = await userModel.findOne({ username: username });
+  if (existUser) {
+    return res.json({ message: "user already signedup" });
   }
 
   const User = new userModel({
@@ -38,7 +75,9 @@ const signUp = async (req: Request, res: Response) => {
   const data = await User.save();
 
   const token = createToken(data._id);
-  res.status(201).json({ message: "Signedup successfully", user: data, token });
+  return res
+    .status(201)
+    .json({ message: "Signedup successfully", user: data, token });
 };
 
 const login = async (req: Request, res: Response) => {
@@ -47,119 +86,88 @@ const login = async (req: Request, res: Response) => {
   const data = await userModel.findOne({ username: username, status: 1 });
 
   if (data) {
-    const passEncrypt = md5(password);
-    const passwordDb = await userModel.findOne({ password: data.password });
-    const dataPass = passwordDb?.password;
-
-    if (passEncrypt === dataPass) {
+    const passEncrypt = encryptPassword(password);
+    const passwordObj = await userModel.findOne({ password: data.password });
+    const userPassword = passwordObj?.password;
+    if (passEncrypt === userPassword) {
       const token = createToken(data._id);
-      res.json({ message: "Data logged in successfully", data, token });
+      res
+        .status(200)
+        .json({ message: "Data logged in successfully", data, token });
     } else {
-      res.json({ message: "Password does not match!" });
+      res.status(400).json({ message: "Password does not match!" });
     }
   } else {
-    res.json({ message: "Incorrect usernmae or inactive status" });
+    res.status(404).json({ message: "Incorrect usernmae or inactive status" });
   }
 };
 
 const authUser = async (req: Request, res: Response) => {
-  const token = req.headers["authorization"];
-  jwt.verify(`${token}`, jwtSecretKey, (err, decodedToken) => {
-    if (err) {
-      console.log(err.message);
-      res.json({ error: "error Occured" });
-    } else {
-      res.json({ message: "Authorised user", decodedToken });
-    }
-  });
+  const decodedToken = req.body.decodedToken;
+  res.json({ message: "Authorised user", decodedToken });
 };
 
 const getProfile = async (req: Request, res: Response) => {
-  const token = req.headers["authorization"];
-  jwt.verify(`${token}`, jwtSecretKey, async (err, decodedToken: any) => {
-    if (err) {
-      res.json({ message: "log in again" });
-    } else {
-      const decode = decodedToken.id;
-      const User = await userModel.findOne({ _id: decode });
-      res.json({ userprofile: User });
-    }
-  });
+  const decodedToken = req.body.decodedToken;
+  const User = await userModel.findOne({ _id: decodedToken.id });
+  res.json({ message: "Profile", userprofile: User });
 };
 
 const update = async (req: Request, res: Response) => {
-  const token = req.headers["authorization"];
-  jwt.verify(`${token}`, jwtSecretKey, async (err, decodedToken: any) => {
-    if (err) {
-      res.json({ Message: "log in again" });
-    } else {
-      const decode = decodedToken.id;
-      if (req.body.password === undefined) {
-        const data = await userModel.updateOne(
-          { _id: decodedToken.id },
-          { $set: req.body }
-        );
-        res.json({ UserProfile: "Profile updated" });
-      } else {
-        const hashpass = md5(req.body.password);
+  const decodedToken = req.body.decodedToken;
+  if (req.body.password === undefined) {
+    const data = await userModel.updateOne(
+      { _id: decodedToken.id },
+      { $set: req.body }
+    );
+    res.json({ UserProfile: "Profile updated" });
+  } else {
+    const hashPass = encryptPassword(req.body.password);
 
-        const data = await userModel.updateOne(
-          { _id: decodedToken.id },
-          { $set: req.body }
-        );
-        const Data = await userModel.updateOne(
-          { _id: decodedToken.id },
-          { $set: { password: hashpass } }
-        );
-
-        res.json({ userprofile: "Profile updated" });
-      }
-    }
-  });
+    const data = await userModel.updateOne(
+      { _id: decodedToken.id },
+      { $set: req.body }
+    );
+    const Data = await userModel.updateOne(
+      { _id: decodedToken.id },
+      { $set: { password: hashPass } }
+    );
+    res.json({ userprofile: "Profile updated" });
+  }
 };
 
 const del = async (req: Request, res: Response) => {
-  const token = req.headers["authorization"];
-  jwt.verify(`${token}`, jwtSecretKey, async (err, decodedToken: any) => {
-    if (err) {
-      res.json({ Message: "log in again" });
-    } else {
-      const decode = decodedToken.id;
-      const data = await userModel.deleteOne({ _id: decodedToken.id });
-      res.json({ message: "data deleted" });
-    }
-  });
+  const decodedToken = req.body.decodedToken;
+  const data = await userModel.findOneAndDelete({ _id: decodedToken.id });
+  if (data) {
+    res.json({ message: "data deleted" });
+  } else {
+    res.json({ message: "user data not found" });
+  }
 };
 
 const deActivate = async (req: Request, res: Response) => {
-  const token = req.headers["authorization"];
-  jwt.verify(`${token}`, jwtSecretKey, async (err, decodedToken: any) => {
-    if (err) {
-      res.json({ Message: "log in again" });
-    } else {
-      //const decode = decodedToken.id;
-      const data = await userModel.updateOne(
-        { _id: decodedToken.id },
-        { $set: { status: 0 } }
-      );
-      res.json({ message: "User deactivated" });
-    }
-  });
+  const decodedToken = req.body.decodedToken;
+  const data = await userModel.findOneAndUpdate(
+    { _id: decodedToken.id, status: 1 },
+    { $set: { status: 0 } }
+  );
+  if (data) {
+    res.json({ message: "User deactivated" });
+  } else {
+    res.json({ message: "user already deactivated" });
+  }
 };
 
 const reActivate = async (req: Request, res: Response) => {
   const { username, password } = req.body;
   const data = await userModel.findOne({ username: username, status: 0 });
-  console.log(data);
-
   if (data) {
-    const passmatch: any = md5(password);
-    console.log(passmatch);
-    const datapass = await userModel.findOne({ password: data.password });
-    console.log(datapass?.password);
-    const dataPass = datapass?.password;
+    const passEncrypt = encryptPassword(password);
+    const passwordObj = await userModel.findOne({ password: data.password });
+    const userPassword = passwordObj?.password;
 
-    if (passmatch === dataPass) {
+    if (passEncrypt === userPassword) {
       const token = createToken(data._id);
       const data1 = await userModel.updateOne(
         { _id: data._id },
@@ -170,7 +178,7 @@ const reActivate = async (req: Request, res: Response) => {
       res.json({ message: "Password does not match!" });
     }
   } else {
-    res.json({ message: "Incorrect username or already active status" });
+    res.json({ message: "invalid credentials or already active status" });
   }
 };
 
@@ -183,4 +191,5 @@ export default {
   del,
   deActivate,
   reActivate,
+  uploadImage,
 };
